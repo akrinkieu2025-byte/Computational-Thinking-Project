@@ -1,0 +1,37 @@
+# Byte-compiled / optimised files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Saved model binaries
+models/*.pkl
+models/*.joblib
+models/*.h5
+
+# Data files (add exceptions as needed)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Reports output
+reports/figures/*
+!reports/figures/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
