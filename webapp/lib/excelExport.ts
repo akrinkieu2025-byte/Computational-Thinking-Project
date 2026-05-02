@@ -15,10 +15,11 @@ export function generateExcel(input: SolverInput, result: SolverResult): XLSX.Wo
     ["Doctors per Patient", "dp", input.dp],
     ["Monitors per Patient", "ep", input.ep],
     ["Beds per Patient (incl. buffer)", "bp", input.bp],
-    ["Min. Nurse-to-Patient Ratio", "K", input.K],
+    ["Patients per Nurse (on shift)", "np", input.np],
     ["Space per Monitoring Station", "Ae", input.Ae],
     ["Space per Bed", "Ab", input.Ab],
     ["Total Space", "AT", input.AT],
+    ["Avg. Length of Stay (days)", "avgLOS", input.avgLOS],
   ];
   const wsInput = XLSX.utils.aoa_to_sheet(inputRows);
   wsInput["!cols"] = [{ wch: 25 }, { wch: 10 }, { wch: 15 }];

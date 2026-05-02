@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const body: SolverInput = await req.json();
 
     // Basic validation
-    const fields: (keyof SolverInput)[] = ["B", "Cd", "Cn", "Ce", "Cb", "dp", "ep", "bp", "K", "Ae", "Ab", "AT"];
+    const fields: (keyof SolverInput)[] = ["B", "Cd", "Cn", "Ce", "Cb", "dp", "ep", "bp", "np", "Ae", "Ab", "AT", "avgLOS"];
     for (const f of fields) {
       if (typeof body[f] !== "number" || body[f] < 0) {
         return NextResponse.json({ error: `Invalid value for ${f}` }, { status: 400 });

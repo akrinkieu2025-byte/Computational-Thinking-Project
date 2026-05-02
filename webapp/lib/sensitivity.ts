@@ -80,10 +80,11 @@ const PARAM_LABELS: Record<keyof SolverInput, string> = {
   dp: "Doctors / Patient (dp)",
   ep: "Monitors / Patient (ep)",
   bp: "Beds / Patient (bp)",
-  K: "Min Nurse Ratio (K)",
+  np: "Patients / Nurse on shift (np)",
   Ae: "Space / Monitor (Ae)",
   Ab: "Space / Bed (Ab)",
   AT: "Total Space (AT)",
+  avgLOS: "Avg. Length of Stay",
 };
 
 const SWEEP_PCTS = [-50, -40, -30, -20, -10, -5, 0, 5, 10, 20, 30, 40, 50];
@@ -201,19 +202,19 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
     });
   }
 
-  // Nurse quality shadow price
+  // Nurse staffing shadow price (increasing np = fewer nurses needed = more patients)
   {
-    const eps = input.K * EPS_FRAC;
-    const bumped = { ...input, K: input.K - eps };
+    const eps = input.np * EPS_FRAC;
+    const bumped = { ...input, np: input.np + eps };
     const res = await solveQuiet(bumped);
     const mv = (res.P - baseline.P) / eps;
     shadowPrices.push({
-      constraint: "Min. Nurse-to-Patient Ratio",
-      binding: baseline.constraints.find(c => c.name === "Min. Nurse-to-Patient Ratio")?.binding ?? false,
+      constraint: "Nurse Staffing (3-shift coverage)",
+      binding: baseline.constraints.find(c => c.name === "Nurse Staffing (3-shift coverage)")?.binding ?? false,
       epsilon: eps,
       marginalValue: Math.round(mv * 10000) / 10000,
       interpretation: mv > 0.0001
-        ? `−0.01 K → +${(mv * 0.01).toFixed(4)} patients`
+        ? `+0.1 np → +${(mv * 0.1).toFixed(4)} patients`
         : "Not a binding constraint",
     });
   }

@@ -2,18 +2,19 @@
 const solver = require("javascript-lp-solver");
 
 export interface SolverInput {
-  B: number;   // Total budget
-  Cd: number;  // Cost per doctor
-  Cn: number;  // Cost per nurse
-  Ce: number;  // Cost per monitoring station
-  Cb: number;  // Cost per bed
-  dp: number;  // Doctors needed per patient
-  ep: number;  // Monitoring stations needed per patient
-  bp: number;  // Beds needed per patient (includes turnover buffer)
-  K: number;   // Minimum nurse-to-patient ratio for quality care
-  Ae: number;  // Space per monitoring station
-  Ab: number;  // Space per bed
-  AT: number;  // Total available space
+  B: number;   // Annual operating budget (€/year)
+  Cd: number;  // Annual cost per doctor FTE (€/year, fully loaded)
+  Cn: number;  // Annual cost per nurse FTE (€/year, fully loaded)
+  Ce: number;  // Annualized cost per monitoring station (€/year)
+  Cb: number;  // Annualized cost per bed (€/year)
+  dp: number;  // Doctor FTEs hired per patient-slot (incl. shift coverage)
+  ep: number;  // Monitoring stations per patient-slot
+  bp: number;  // Beds per patient-slot (>1 = turnover buffer)
+  np: number;  // Patients per nurse on shift (e.g. 4 = one nurse handles 4 patients)
+  Ae: number;  // Floor space per monitoring station (m²)
+  Ab: number;  // Floor space per bed (m²)
+  AT: number;  // Total available ward floor space (m²)
+  avgLOS: number; // Average length of stay in days (display only, not a constraint)
 }
 
 export interface SolverResult {
@@ -29,6 +30,7 @@ export interface SolverResult {
   intN: number;
   intE: number;
   intB: number;
+  annualThroughput: number; // Estimated annual patients treated (intP × 365 / avgLOS)
   intBudgetUsed: number;
   intBudgetPercent: number;
   intSpaceUsed: number;
@@ -47,20 +49,33 @@ export interface SolverResult {
 }
 
 export async function solve(input: SolverInput): Promise<SolverResult> {
-  const { B, Cd, Cn, Ce, Cb, dp, ep, bp, K, Ae, Ab, AT } = input;
+  const { B, Cd, Cn, Ce, Cb, dp, ep, bp, np, Ae, Ab, AT } = input;
+
+  // Convert user-friendly "patients per nurse on shift" to FTEs needed per patient
+  // 3 shifts needed for 24/7 coverage → nurseRatio = 3 / np
+  const nurseRatio = 3 / np;
 
   /*
-   * javascript-lp-solver uses a tableau model.
-   * Variables: P, d, n, e, b
-   * Objective: maximize P
+   * LINEAR PROGRAMMING MODEL — Annual Hospital Ward Planning
    *
-   * Constraints (rewritten as ≤ form for the solver):
-   *   doctor_cap:  dp*P - d ≤ 0       →  P ≤ d/dp
-   *   equip_cap:   ep*P - e ≤ 0       →  P ≤ e/ep  (monitoring stations)
-   *   bed_cap:     bp*P - b ≤ 0       →  P ≤ b/bp  (includes turnover buffer)
-   *   budget:      Cd*d + Cn*n + Ce*e + Cb*b ≤ B
-   *   nurse_qual:  K*P - n ≤ 0        →  n ≥ K*P  (min nurse-to-patient ratio)
-   *   space:       Ae*e + Ab*b ≤ AT
+   * Decision Variables:
+   *   P = concurrent patient capacity (avg daily census)
+   *   d = doctor FTEs hired (annual)
+   *   n = nurse FTEs hired (annual)
+   *   e = monitoring stations
+   *   b = physical beds
+   *
+   * Objective: maximize P (concurrent patient-slots)
+   *
+   * Constraints (all in ≤ form):
+   *   doctor_cap:  dp·P − d ≤ 0       → need dp doctors per patient (incl. shift cover)
+   *   equip_cap:   ep·P − e ≤ 0       → need ep monitors per patient
+   *   bed_cap:     bp·P − b ≤ 0       → need bp beds per patient (>1 = turnover buffer)
+   *   budget:      Cd·d + Cn·n + Ce·e + Cb·b ≤ B  (annual €)
+   *   nurse_qual:  (3/np)·P − n ≤ 0   → need 3 shifts ÷ patients-per-nurse nurses per patient
+   *   space:       Ae·e + Ab·b ≤ AT   (m²)
+   *
+   * Annual throughput ≈ P × 365 / avg_length_of_stay (displayed, not a constraint)
    */
 
   const model = {
@@ -80,7 +95,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         doctor_cap: dp,
         equip_cap: ep,
         bed_cap: bp,
-        nurse_qual: K,
+        nurse_qual: nurseRatio,
       },
       d: {
         doctor_cap: -1,
@@ -141,10 +156,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       binding: Math.abs(B - budgetUsed) < 0.01,
     },
     {
-      name: "Min. Nurse-to-Patient Ratio",
-      capacity: round(K > 0 ? n / K : Infinity),
-      slack: round((K > 0 ? n / K : Infinity) - P),
-      binding: K > 0 && Math.abs(n - K * P) < 0.01,
+      name: "Nurse Staffing (3-shift coverage)",
+      capacity: round(nurseRatio > 0 ? n / nurseRatio : Infinity),
+      slack: round((nurseRatio > 0 ? n / nurseRatio : Infinity) - P),
+      binding: nurseRatio > 0 && Math.abs(n - nurseRatio * P) < 0.01,
     },
     {
       name: "Space",
@@ -166,6 +181,8 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   const intP = Math.floor(P);
   const intBudgetUsed = Cd * intD + Cn * intN + Ce * intE + Cb * intB;
   const intSpaceUsed = Ae * intE + Ab * intB;
+  // Annual throughput estimate
+  const annualThroughput = Math.floor(intP * 365 / input.avgLOS);
 
   return {
     optimal,
@@ -179,6 +196,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     intN,
     intE,
     intB,
+    annualThroughput,
     intBudgetUsed: round(intBudgetUsed),
     intBudgetPercent: round((intBudgetUsed / B) * 100),
     intSpaceUsed: round(intSpaceUsed),

@@ -9,18 +9,19 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 const defaultInput: SolverInput = {
-  B: 2500000,
-  Cd: 250000,
-  Cn: 75000,
-  Ce: 5000,
-  Cb: 2500,
-  dp: 0.15,
-  ep: 0.25,
-  bp: 1.2,
-  K: 0.5,
-  Ae: 6,
-  Ab: 12,
-  AT: 3000,
+  B: 5000000,
+  Cd: 200000,
+  Cn: 60000,
+  Ce: 3000,
+  Cb: 2000,
+  dp: 0.3,
+  ep: 0.5,
+  bp: 1.15,
+  np: 4,
+  Ae: 4,
+  Ab: 10,
+  AT: 2000,
+  avgLOS: 5,
 };
 
 export default function Home() {
@@ -76,7 +77,7 @@ export default function Home() {
             </div>
           </div>
           <p className="mt-3 text-[#9ba4b8] text-sm max-w-xl mx-auto leading-relaxed text-center">
-            Find the optimal allocation of doctors, nurses, monitoring stations, and beds to maximize the number of patients treated within your budget and space constraints.
+            Find the optimal annual allocation of doctors, nurses, monitoring stations, and beds to maximize concurrent patient capacity within your budget and space constraints. All costs are annualized; staffing ratios include 24/7 shift coverage.
           </p>
         </motion.div>
 

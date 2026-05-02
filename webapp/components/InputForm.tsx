@@ -20,30 +20,31 @@ interface FieldDef {
 
 const sections: { title: string; fields: FieldDef[] }[] = [
   {
-    title: "Budget & Costs",
+    title: "Annual Budget & Costs",
     fields: [
-      { key: "B", label: "Total Budget (B)", hint: "total available to spend", tooltip: "Total budget available for hiring staff and purchasing equipment" },
-      { key: "Cd", label: "Cost per Doctor (Cd)", hint: "cost to employ one doctor", tooltip: "All-in cost for one doctor" },
-      { key: "Cn", label: "Cost per Nurse (Cn)", hint: "cost to employ one nurse", tooltip: "All-in cost for one nurse" },
-      { key: "Ce", label: "Cost per Monitor (Ce)", hint: "cost for one station", tooltip: "Cost of one monitoring station" },
-      { key: "Cb", label: "Cost per Bed (Cb)", hint: "cost for one bed", tooltip: "Cost of one hospital bed" },
+      { key: "B", label: "Annual Budget (B)", hint: "€/year for the ward", tooltip: "Total annual operating budget for staffing and equipment" },
+      { key: "Cd", label: "Doctor Cost (Cd)", hint: "€/year fully loaded salary", tooltip: "Annual cost per doctor FTE including benefits & overhead" },
+      { key: "Cn", label: "Nurse Cost (Cn)", hint: "€/year fully loaded salary", tooltip: "Annual cost per nurse FTE including benefits & overhead" },
+      { key: "Ce", label: "Monitor Cost (Ce)", hint: "€/year annualized (purchase÷life + maint.)", tooltip: "Annualized cost per monitoring station (purchase price ÷ useful life + annual maintenance)" },
+      { key: "Cb", label: "Bed Cost (Cb)", hint: "€/year annualized (purchase÷life + maint.)", tooltip: "Annualized cost per hospital bed (purchase price ÷ useful life + annual maintenance)" },
     ],
   },
   {
-    title: "Capacity Ratios",
+    title: "Staffing Ratios (FTEs hired per patient-slot)",
     fields: [
-      { key: "dp", label: "Doctors per Patient (dp)", hint: "e.g. 0.15 = 1 per ~7 patients", tooltip: "Physician FTEs needed per patient" },
-      { key: "ep", label: "Monitors per Patient (ep)", hint: "e.g. 0.25 = 1 per 4 patients", tooltip: "Monitoring stations per patient" },
-      { key: "bp", label: "Beds per Patient (bp)", hint: "> 1.0 includes turnover buffer", tooltip: "Beds per patient including turnover buffer" },
+      { key: "dp", label: "Doctors per Patient (dp)", hint: "e.g. 0.3 = 1 doctor per ~3 patients (incl. shifts)", tooltip: "Doctor FTEs to hire per concurrent patient, accounting for 24/7 shift coverage" },
+      { key: "ep", label: "Monitors per Patient (ep)", hint: "e.g. 0.5 = 1 per 2 patients", tooltip: "Monitoring stations required per concurrent patient" },
+      { key: "bp", label: "Beds per Patient (bp)", hint: "> 1.0 adds turnover buffer (e.g. 1.15 = 15%)", tooltip: "Physical beds per patient-slot; >1 accounts for admission/discharge turnover" },
     ],
   },
   {
-    title: "Space & Quality",
+    title: "Space & Nursing Quality",
     fields: [
-      { key: "Ae", label: "Space per Monitor (Ae)", hint: "m\u00B2 per station", tooltip: "Floor space per monitoring station" },
-      { key: "Ab", label: "Space per Bed (Ab)", hint: "m\u00B2 incl. corridor access", tooltip: "Floor space per bed" },
-      { key: "AT", label: "Total Space (AT)", hint: "m\u00B2 clinical floor", tooltip: "Total available clinical floor space" },
-      { key: "K", label: "Min. Nurse Ratio (K)", hint: "nurses per patient floor", tooltip: "Minimum nurses per patient for safe care" },
+      { key: "Ae", label: "Space per Monitor (Ae)", hint: "m² per station", tooltip: "Floor space required per monitoring station" },
+      { key: "Ab", label: "Space per Bed (Ab)", hint: "m² incl. corridor access", tooltip: "Floor space per bed including patient bay and corridor" },
+      { key: "AT", label: "Total Ward Space (AT)", hint: "m² clinical floor available", tooltip: "Total available clinical floor space for the ward" },
+      { key: "np", label: "Patients per Nurse (on shift)", hint: "e.g. 4 = one nurse handles 4 patients at a time", tooltip: "How many patients one on-duty nurse manages simultaneously. The model automatically accounts for 3-shift (24h) coverage." },
+      { key: "avgLOS", label: "Avg. Length of Stay", hint: "days per patient admission", tooltip: "Average number of days a patient stays in the ward. Used to estimate annual patient throughput." },
     ],
   },
 ];

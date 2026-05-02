@@ -11,18 +11,19 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 const defaultInput: SolverInput = {
-  B: 2500000,
-  Cd: 250000,
-  Cn: 75000,
-  Ce: 5000,
-  Cb: 2500,
-  dp: 0.15,
-  ep: 0.25,
-  bp: 1.2,
-  K: 0.5,
-  Ae: 6,
-  Ab: 12,
-  AT: 3000,
+  B: 5000000,
+  Cd: 200000,
+  Cn: 60000,
+  Ce: 3000,
+  Cb: 2000,
+  dp: 0.3,
+  ep: 0.5,
+  bp: 1.15,
+  np: 4,
+  Ae: 4,
+  Ab: 10,
+  AT: 2000,
+  avgLOS: 5,
 };
 
 export default function SensitivityPage() {

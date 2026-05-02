@@ -22,10 +22,11 @@ export function downloadSensitivityExcel(input: SolverInput, data: SensitivityRe
     ["Doctors/Patient (dp)", input.dp],
     ["Monitors/Patient (ep)", input.ep],
     ["Beds/Patient (bp)", input.bp],
-    ["Min Nurse Ratio (K)", input.K],
+    ["Min Nurse Ratio (K)", input.np],
     ["Space/Monitor (Ae)", input.Ae],
     ["Space/Bed (Ab)", input.Ab],
     ["Total Space (AT)", input.AT],
+    ["Avg. Length of Stay", input.avgLOS],
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
   wsSummary["!cols"] = [{ wch: 35 }, { wch: 25 }];
