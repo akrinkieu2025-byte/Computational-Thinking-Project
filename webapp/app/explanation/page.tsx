@@ -68,9 +68,9 @@ export default function ExplanationPage() {
             <Image
               src="/ie-logo.jpg"
               alt="IE University"
-              width={120}
-              height={40}
-              className="object-contain mix-blend-screen opacity-90 h-auto"
+              width={48}
+              height={48}
+              className="rounded-xl object-cover"
               priority
             />
           </div>
