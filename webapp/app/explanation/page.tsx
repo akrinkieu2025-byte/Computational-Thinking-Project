@@ -65,14 +65,16 @@ export default function ExplanationPage() {
             <h1 className="text-3xl font-bold text-white sm:text-4xl tracking-tight">
               How It Works
             </h1>
-            <Image
-              src="/ie-logo.jpg"
-              alt="IE University"
-              width={48}
-              height={48}
-              className="rounded-xl object-cover"
-              priority
-            />
+            <div className="rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 p-1.5">
+              <Image
+                src="/ie-logo.jpg"
+                alt="IE University"
+                width={100}
+                height={34}
+                className="object-contain h-auto rounded-md brightness-[1.15] contrast-[0.9]"
+                priority
+              />
+            </div>
           </div>
           <p className="mt-3 text-[#9ba4b8] text-sm max-w-lg mx-auto leading-relaxed text-center">
             A complete guide to the optimization model behind OptiCare

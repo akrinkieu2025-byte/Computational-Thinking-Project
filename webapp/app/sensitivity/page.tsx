@@ -73,14 +73,16 @@ export default function SensitivityPage() {
             >
               ?
             </Link>
-            <Image
-              src="/ie-logo.jpg"
-              alt="IE University"
-              width={48}
-              height={48}
-              className="rounded-xl object-cover"
-              priority
-            />
+            <div className="rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 p-1.5">
+              <Image
+                src="/ie-logo.jpg"
+                alt="IE University"
+                width={100}
+                height={34}
+                className="object-contain h-auto rounded-md brightness-[1.15] contrast-[0.9]"
+                priority
+              />
+            </div>
           </div>
           <p className="mt-3 text-[#9ba4b8] text-sm max-w-xl mx-auto leading-relaxed text-center">
             Explore how changes in each parameter affect the optimal solution.
