@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const solver = require("javascript-lp-solver");
+const lpSolver = require("javascript-lp-solver");
 
 export interface SolverInput {
   B: number;   // Annual operating budget (€/year)
@@ -7,30 +7,42 @@ export interface SolverInput {
   Cn: number;  // Annual cost per nurse FTE (€/year, fully loaded)
   Ce: number;  // Annualized cost per monitoring station (€/year)
   Cb: number;  // Annualized cost per bed (€/year)
-  dp: number;  // Doctor FTEs hired per patient-slot (incl. shift coverage)
+  pd: number;  // Patients per doctor on shift (e.g. 3 = one doctor handles 3 patients)
   ep: number;  // Monitoring stations per patient-slot
   bp: number;  // Beds per patient-slot (>1 = turnover buffer)
   np: number;  // Patients per nurse on shift (e.g. 4 = one nurse handles 4 patients)
   Ae: number;  // Floor space per monitoring station (m²)
   Ab: number;  // Floor space per bed (m²)
   AT: number;  // Total available ward floor space (m²)
-  avgLOS: number; // Average length of stay in days (display only, not a constraint)
+  avgLOS: number; // Average length of stay in days
+  dMin: number; // Minimum doctors (regulatory/safety floor)
+  nMin: number; // Minimum nurses (regulatory/safety floor)
+}
+
+export interface ConstraintInfo {
+  name: string;
+  usage: number;
+  limit: number;
+  usageLabel: string;
+  limitLabel: string;
+  percent: number;
+  binding: boolean;
 }
 
 export interface SolverResult {
   optimal: boolean;
+  infeasibleReason: string | null;
   P: number;
   d: number;
   n: number;
   e: number;
   b: number;
-  // Integer (ceil-rounded) practical values
   intP: number;
   intD: number;
   intN: number;
   intE: number;
   intB: number;
-  annualThroughput: number; // Estimated annual patients treated (intP × 365 / avgLOS)
+  annualThroughput: number;
   intBudgetUsed: number;
   intBudgetPercent: number;
   intSpaceUsed: number;
@@ -39,174 +51,241 @@ export interface SolverResult {
   budgetPercent: number;
   spaceUsed: number;
   spacePercent: number;
-  constraints: {
-    name: string;
-    capacity: number;
-    slack: number;
-    binding: boolean;
-  }[];
+  constraints: ConstraintInfo[];
   bottleneck: string;
 }
 
 export async function solve(input: SolverInput): Promise<SolverResult> {
-  const { B, Cd, Cn, Ce, Cb, dp, ep, bp, np, Ae, Ab, AT } = input;
+  const { B, Cd, Cn, Ce, Cb, pd, ep, bp, np, Ae, Ab, AT, dMin, nMin } = input;
 
-  // Convert user-friendly "patients per nurse on shift" to FTEs needed per patient
-  // 3 shifts needed for 24/7 coverage → nurseRatio = 3 / np
-  const nurseRatio = 3 / np;
+  // Shift coverage: 3 shifts for 24/7 coverage
+  const doctorRatio = 3 / pd; // FTEs needed per patient
+  const nurseRatio = 3 / np;  // FTEs needed per patient
+
+  // Pre-check: can we even afford minimum staff?
+  const minCost = Cd * dMin + Cn * nMin;
+  if (minCost > B) {
+    return makeInfeasibleResult(
+      `Minimum staffing alone costs €${minCost.toLocaleString()} (${dMin} doctors × €${Cd.toLocaleString()} + ${nMin} nurses × €${Cn.toLocaleString()}) ` +
+      `but budget is only €${B.toLocaleString()}. Reduce minimum staff requirements or increase budget.`
+    );
+  }
+
+  // Check if space allows at least 1 patient
+  const spaceFor1Patient = Ae * ep + Ab * bp;
+  if (spaceFor1Patient > AT) {
+    return makeInfeasibleResult(
+      `Even 1 patient requires ${round(spaceFor1Patient)} m² but only ${AT} m² is available. ` +
+      `Increase total space or reduce space requirements.`
+    );
+  }
 
   /*
-   * LINEAR PROGRAMMING MODEL — Annual Hospital Ward Planning
+   * APPROACH: Solve LP relaxation first, then find the best integer solution.
    *
-   * Decision Variables:
-   *   P = concurrent patient capacity (avg daily census)
-   *   d = doctor FTEs hired (annual)
-   *   n = nurse FTEs hired (annual)
-   *   e = monitoring stations
-   *   b = physical beds
-   *
-   * Objective: maximize P (concurrent patient-slots)
-   *
-   * Constraints (all in ≤ form):
-   *   doctor_cap:  dp·P − d ≤ 0       → need dp doctors per patient (incl. shift cover)
-   *   equip_cap:   ep·P − e ≤ 0       → need ep monitors per patient
-   *   bed_cap:     bp·P − b ≤ 0       → need bp beds per patient (>1 = turnover buffer)
-   *   budget:      Cd·d + Cn·n + Ce·e + Cb·b ≤ B  (annual €)
-   *   nurse_qual:  (3/np)·P − n ≤ 0   → need 3 shifts ÷ patients-per-nurse nurses per patient
-   *   space:       Ae·e + Ab·b ≤ AT   (m²)
-   *
-   * Annual throughput ≈ P × 365 / avg_length_of_stay (displayed, not a constraint)
+   * The LP relaxation uses javascript-lp-solver (continuous).
+   * Then we search integers near the LP optimum for the best feasible integer point.
+   * This works perfectly for our model structure because given integer P,
+   * the minimum resources are deterministic: d=ceil(doctorRatio*P), etc.
    */
 
+  // Step 1: Solve LP relaxation to get upper bound
   const model = {
     optimize: "patients",
     opType: "max",
     constraints: {
-      doctor_cap:  { max: 0 },
-      equip_cap:   { max: 0 },
-      bed_cap:     { max: 0 },
-      budget:      { max: B },
-      nurse_qual:  { max: 0 },
-      space:       { max: AT },
+      doctor_cap: { max: 0 },
+      nurse_cap: { max: 0 },
+      equip_cap: { max: 0 },
+      bed_cap: { max: 0 },
+      budget: { max: B },
+      space: { max: AT },
     },
     variables: {
       P: {
         patients: 1,
-        doctor_cap: dp,
+        doctor_cap: doctorRatio,
+        nurse_cap: nurseRatio,
         equip_cap: ep,
         bed_cap: bp,
-        nurse_qual: nurseRatio,
       },
-      d: {
-        doctor_cap: -1,
-        budget: Cd,
-      },
-      n: {
-        budget: Cn,
-        nurse_qual: -1,
-      },
-      e: {
-        equip_cap: -1,
-        budget: Ce,
-        space: Ae,
-      },
-      b: {
-        bed_cap: -1,
-        budget: Cb,
-        space: Ab,
-      },
+      d: { doctor_cap: -1, budget: Cd },
+      n: { nurse_cap: -1, budget: Cn },
+      e: { equip_cap: -1, budget: Ce, space: Ae },
+      b: { bed_cap: -1, budget: Cb, space: Ab },
     },
   };
 
-  const result = solver.Solve(model);
+  const lpResult = lpSolver.Solve(model);
 
-  const P = result.P ?? 0;
-  const d = result.d ?? 0;
-  const n = result.n ?? 0;
-  const e = result.e ?? 0;
-  const b = result.b ?? 0;
-  const optimal = result.feasible === true;
+  if (!lpResult.feasible) {
+    return makeInfeasibleResult(
+      "The linear relaxation is infeasible. This means no combination of resources can satisfy all constraints simultaneously. " +
+      "Check that your budget is sufficient for the cost ratios, and that your space can fit the required equipment and beds."
+    );
+  }
 
-  const budgetUsed = Cd * d + Cn * n + Ce * e + Cb * b;
-  const spaceUsed = Ae * e + Ab * b;
+  const lpP = lpResult.P ?? 0;
 
-  const constraints = [
+  // Step 2: Find best integer solution by searching downward from LP optimum
+  // For a given integer P, the minimum resources needed are deterministic:
+  //   d = max(dMin, ceil(doctorRatio * P))
+  //   n = max(nMin, ceil(nurseRatio * P))
+  //   e = ceil(ep * P)
+  //   b = ceil(bp * P)
+  // Then check budget and space feasibility.
+
+  let bestP = 0;
+  let bestD = dMin, bestN = nMin, bestE = 0, bestB_beds = 0;
+
+  const maxP = Math.floor(lpP); // LP gives upper bound
+
+  for (let p = maxP; p >= 0; p--) {
+    const dNeeded = Math.max(dMin, Math.ceil(doctorRatio * p));
+    const nNeeded = Math.max(nMin, Math.ceil(nurseRatio * p));
+    const eNeeded = Math.ceil(ep * p);
+    const bNeeded = Math.ceil(bp * p);
+
+    const cost = Cd * dNeeded + Cn * nNeeded + Ce * eNeeded + Cb * bNeeded;
+    const space = Ae * eNeeded + Ab * bNeeded;
+
+    if (cost <= B && space <= AT) {
+      bestP = p;
+      bestD = dNeeded;
+      bestN = nNeeded;
+      bestE = eNeeded;
+      bestB_beds = bNeeded;
+      break;
+    }
+  }
+
+  if (bestP === 0 && maxP > 0) {
+    // Even 0 patients should be feasible (just min staff), but let's check
+    const minStaffCost = Cd * dMin + Cn * nMin;
+    if (minStaffCost <= B) {
+      bestP = 0;
+      bestD = dMin;
+      bestN = nMin;
+      bestE = 0;
+      bestB_beds = 0;
+    } else {
+      return makeInfeasibleResult(
+        `Cannot find a feasible integer solution. Minimum staffing costs €${minStaffCost.toLocaleString()} which exceeds budget.`
+      );
+    }
+  }
+
+  const intP = bestP;
+  const intD = bestD;
+  const intN = bestN;
+  const intE = bestE;
+  const intB = bestB_beds;
+
+  const budgetUsed = Cd * intD + Cn * intN + Ce * intE + Cb * intB;
+  const spaceUsed = Ae * intE + Ab * intB;
+  const annualThroughput = Math.floor(intP * 365 / input.avgLOS);
+
+  // Constraint utilization analysis
+  const constraints: ConstraintInfo[] = [
     {
-      name: "Doctor Capacity",
-      capacity: round(dp > 0 ? d / dp : Infinity),
-      slack: round((dp > 0 ? d / dp : Infinity) - P),
-      binding: dp > 0 && Math.abs(d / dp - P) < 0.01,
+      name: "Doctor Staffing (3-shift)",
+      usage: round(doctorRatio * intP),
+      limit: intD,
+      usageLabel: `${round(doctorRatio * intP)} FTEs needed`,
+      limitLabel: `${intD} FTEs hired`,
+      percent: intD > 0 ? round((doctorRatio * intP / intD) * 100) : 0,
+      binding: intD > 0 && (intD - doctorRatio * intP) < 1,
     },
     {
-      name: "Monitoring Station Capacity",
-      capacity: round(ep > 0 ? e / ep : Infinity),
-      slack: round((ep > 0 ? e / ep : Infinity) - P),
-      binding: ep > 0 && Math.abs(e / ep - P) < 0.01,
+      name: "Nurse Staffing (3-shift)",
+      usage: round(nurseRatio * intP),
+      limit: intN,
+      usageLabel: `${round(nurseRatio * intP)} FTEs needed`,
+      limitLabel: `${intN} FTEs hired`,
+      percent: intN > 0 ? round((nurseRatio * intP / intN) * 100) : 0,
+      binding: intN > 0 && (intN - nurseRatio * intP) < 1,
+    },
+    {
+      name: "Monitoring Stations",
+      usage: round(ep * intP),
+      limit: intE,
+      usageLabel: `${round(ep * intP)} stations needed`,
+      limitLabel: `${intE} available`,
+      percent: intE > 0 ? round((ep * intP / intE) * 100) : 0,
+      binding: intE > 0 && (intE - ep * intP) < 1,
     },
     {
       name: "Bed Capacity",
-      capacity: round(bp > 0 ? b / bp : Infinity),
-      slack: round((bp > 0 ? b / bp : Infinity) - P),
-      binding: bp > 0 && Math.abs(b / bp - P) < 0.01,
+      usage: round(bp * intP),
+      limit: intB,
+      usageLabel: `${round(bp * intP)} beds needed`,
+      limitLabel: `${intB} available`,
+      percent: intB > 0 ? round((bp * intP / intB) * 100) : 0,
+      binding: intB > 0 && (intB - bp * intP) < 1,
     },
     {
-      name: "Budget",
-      capacity: round(B),
-      slack: round(B - budgetUsed),
-      binding: Math.abs(B - budgetUsed) < 0.01,
+      name: "Annual Budget",
+      usage: round(budgetUsed),
+      limit: round(B),
+      usageLabel: `€${round(budgetUsed).toLocaleString()}`,
+      limitLabel: `€${round(B).toLocaleString()}`,
+      percent: round((budgetUsed / B) * 100),
+      binding: (B - budgetUsed) < (Cd * 0.5), // binding if can't afford half a doctor more
     },
     {
-      name: "Nurse Staffing (3-shift coverage)",
-      capacity: round(nurseRatio > 0 ? n / nurseRatio : Infinity),
-      slack: round((nurseRatio > 0 ? n / nurseRatio : Infinity) - P),
-      binding: nurseRatio > 0 && Math.abs(n - nurseRatio * P) < 0.01,
-    },
-    {
-      name: "Space",
-      capacity: round(AT),
-      slack: round(AT - spaceUsed),
-      binding: Math.abs(AT - spaceUsed) < 0.01,
+      name: "Floor Space",
+      usage: round(spaceUsed),
+      limit: round(AT),
+      usageLabel: `${round(spaceUsed)} m²`,
+      limitLabel: `${round(AT)} m²`,
+      percent: round((spaceUsed / AT) * 100),
+      binding: (AT - spaceUsed) < (Ae + Ab),
     },
   ];
 
   const bottleneck =
     constraints.find((c) => c.binding)?.name ?? "None identified";
 
-  // Integer (ceil) rounding — you can't hire 4.3 doctors, you need 5
-  const intD = Math.ceil(d);
-  const intN = Math.ceil(n);
-  const intE = Math.ceil(e);
-  const intB = Math.ceil(b);
-  // Patients rounds DOWN — you can't treat a fraction of a patient
-  const intP = Math.floor(P);
-  const intBudgetUsed = Cd * intD + Cn * intN + Ce * intE + Cb * intB;
-  const intSpaceUsed = Ae * intE + Ab * intB;
-  // Annual throughput estimate
-  const annualThroughput = Math.floor(intP * 365 / input.avgLOS);
-
   return {
-    optimal,
-    P: round(P),
-    d: round(d),
-    n: round(n),
-    e: round(e),
-    b: round(b),
+    optimal: true,
+    infeasibleReason: null,
+    P: round(lpP),
+    d: round(lpResult.d ?? 0),
+    n: round(lpResult.n ?? 0),
+    e: round(lpResult.e ?? 0),
+    b: round(lpResult.b ?? 0),
     intP,
     intD,
     intN,
     intE,
     intB,
     annualThroughput,
-    intBudgetUsed: round(intBudgetUsed),
-    intBudgetPercent: round((intBudgetUsed / B) * 100),
-    intSpaceUsed: round(intSpaceUsed),
-    intSpacePercent: round((intSpaceUsed / AT) * 100),
+    intBudgetUsed: round(budgetUsed),
+    intBudgetPercent: round((budgetUsed / B) * 100),
+    intSpaceUsed: round(spaceUsed),
+    intSpacePercent: round((spaceUsed / AT) * 100),
     budgetUsed: round(budgetUsed),
     budgetPercent: round((budgetUsed / B) * 100),
     spaceUsed: round(spaceUsed),
     spacePercent: round((spaceUsed / AT) * 100),
     constraints,
     bottleneck,
+  };
+}
+
+function makeInfeasibleResult(reason: string): SolverResult {
+  return {
+    optimal: false,
+    infeasibleReason: reason,
+    P: 0, d: 0, n: 0, e: 0, b: 0,
+    intP: 0, intD: 0, intN: 0, intE: 0, intB: 0,
+    annualThroughput: 0,
+    intBudgetUsed: 0, intBudgetPercent: 0,
+    intSpaceUsed: 0, intSpacePercent: 0,
+    budgetUsed: 0, budgetPercent: 0,
+    spaceUsed: 0, spacePercent: 0,
+    constraints: [],
+    bottleneck: "Infeasible",
   };
 }
 

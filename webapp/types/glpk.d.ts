@@ -25,6 +25,7 @@ declare module "glpk.js" {
           vars: { name: string; coef: number }[];
           bnds: { type: number; lb: number; ub: number };
         }[];
+        generals?: string[];
         bounds?: {
           name: string;
           type: number;

@@ -30,21 +30,28 @@ const sections: { title: string; fields: FieldDef[] }[] = [
     ],
   },
   {
-    title: "Staffing Ratios (FTEs hired per patient-slot)",
+    title: "Staffing & Equipment Ratios",
     fields: [
-      { key: "dp", label: "Doctors per Patient (dp)", hint: "e.g. 0.3 = 1 doctor per ~3 patients (incl. shifts)", tooltip: "Doctor FTEs to hire per concurrent patient, accounting for 24/7 shift coverage" },
-      { key: "ep", label: "Monitors per Patient (ep)", hint: "e.g. 0.5 = 1 per 2 patients", tooltip: "Monitoring stations required per concurrent patient" },
+      { key: "pd", label: "Patients per Doctor (on shift)", hint: "e.g. 3 = one doctor handles 3 patients at a time", tooltip: "How many patients one on-duty doctor manages simultaneously. The model accounts for 3-shift (24h) coverage automatically." },
+      { key: "np", label: "Patients per Nurse (on shift)", hint: "e.g. 4 = one nurse handles 4 patients at a time", tooltip: "How many patients one on-duty nurse manages simultaneously. The model accounts for 3-shift (24h) coverage automatically." },
+      { key: "ep", label: "Monitors per Patient (ep)", hint: "e.g. 0.5 = 1 monitor per 2 patients", tooltip: "Monitoring stations required per concurrent patient" },
       { key: "bp", label: "Beds per Patient (bp)", hint: "> 1.0 adds turnover buffer (e.g. 1.15 = 15%)", tooltip: "Physical beds per patient-slot; >1 accounts for admission/discharge turnover" },
     ],
   },
   {
-    title: "Space & Nursing Quality",
+    title: "Space & Capacity",
     fields: [
       { key: "Ae", label: "Space per Monitor (Ae)", hint: "m² per station", tooltip: "Floor space required per monitoring station" },
       { key: "Ab", label: "Space per Bed (Ab)", hint: "m² incl. corridor access", tooltip: "Floor space per bed including patient bay and corridor" },
       { key: "AT", label: "Total Ward Space (AT)", hint: "m² clinical floor available", tooltip: "Total available clinical floor space for the ward" },
-      { key: "np", label: "Patients per Nurse (on shift)", hint: "e.g. 4 = one nurse handles 4 patients at a time", tooltip: "How many patients one on-duty nurse manages simultaneously. The model automatically accounts for 3-shift (24h) coverage." },
       { key: "avgLOS", label: "Avg. Length of Stay", hint: "days per patient admission", tooltip: "Average number of days a patient stays in the ward. Used to estimate annual patient throughput." },
+    ],
+  },
+  {
+    title: "Minimum Staffing (Safety / Regulatory)",
+    fields: [
+      { key: "dMin", label: "Min. Doctors", hint: "minimum FTEs regardless of patient count", tooltip: "Regulatory or safety minimum number of doctor FTEs. The ward must have at least this many doctors even at low patient volumes." },
+      { key: "nMin", label: "Min. Nurses", hint: "minimum FTEs regardless of patient count", tooltip: "Regulatory or safety minimum number of nurse FTEs. The ward must have at least this many nurses even at low patient volumes." },
     ],
   },
 ];

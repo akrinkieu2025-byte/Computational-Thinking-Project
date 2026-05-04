@@ -26,8 +26,11 @@ export default function ResultsDisplay({ result, input }: ResultsDisplayProps) {
       </h2>
 
       {!result.optimal && (
-        <div className="rounded-[10px] border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
-          No optimal solution found. Try adjusting your parameters.
+        <div className="rounded-[10px] border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300 space-y-2">
+          <div className="font-semibold">No optimal solution found.</div>
+          {result.infeasibleReason && (
+            <div className="text-xs text-red-400/80 leading-relaxed">{result.infeasibleReason}</div>
+          )}
         </div>
       )}
 
@@ -111,8 +114,8 @@ export default function ResultsDisplay({ result, input }: ResultsDisplayProps) {
           ))}
         </div>
         <div className="mt-3 text-[10px] text-slate-600 leading-relaxed">
-          Staff counts include 24/7 shift coverage (3 shifts). 
-          Equipment costs are annualized (purchase price ÷ useful life + maintenance).
+          Staff = total FTEs for 24/7 coverage (3×8h shifts). 
+          Equipment costs are annualized (purchase ÷ life + maintenance). All values are exact integers from the MIP solver.
         </div>
       </Card>
 
@@ -197,46 +200,45 @@ export default function ResultsDisplay({ result, input }: ResultsDisplayProps) {
 
       {/* ── Constraints table ── */}
       <Card delay={0.33}>
-        <h3 className="text-sm font-semibold text-slate-300 mb-3">Constraint Breakdown</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-white/10 text-slate-500">
-                <th className="pb-2 text-left font-medium">Constraint</th>
-                <th className="pb-2 text-right font-medium">Max Patients Allowed</th>
-                <th className="pb-2 text-right font-medium">Unused Capacity</th>
-                <th className="pb-2 text-right font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.constraints.map((c, i) => (
-                <tr key={i} className="border-b border-white/5">
-                  <td className="py-2 text-slate-300">{c.name}</td>
-                  <td className="py-2 text-right text-slate-400 tabular-nums">
-                    {c.capacity === Infinity ? "∞" : c.capacity.toLocaleString()}
-                  </td>
-                  <td className="py-2 text-right text-slate-400 tabular-nums">
-                    {c.slack === Infinity ? "∞" : c.slack.toLocaleString()}
-                  </td>
-                  <td className="py-2 text-right">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        c.binding
-                          ? "bg-red-500/20 text-red-300"
-                          : "bg-green-500/20 text-green-300"
-                      }`}
-                    >
-                      {c.binding ? "Limiting" : "OK"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h3 className="text-sm font-semibold text-slate-300 mb-3">Constraint Utilization</h3>
+        <div className="space-y-3">
+          {result.constraints.map((c, i) => (
+            <div key={i}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-slate-300 font-medium">{c.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500">
+                    {c.usageLabel} / {c.limitLabel}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      c.binding
+                        ? "bg-red-500/20 text-red-300"
+                        : "bg-green-500/20 text-green-300"
+                    }`}
+                  >
+                    {c.binding ? "Binding" : `${c.percent}%`}
+                  </span>
+                </div>
+              </div>
+              <div className="h-2 rounded-full bg-[#1a1f33] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    c.binding
+                      ? "bg-gradient-to-r from-red-500 to-orange-500"
+                      : c.percent > 80
+                      ? "bg-gradient-to-r from-amber-500 to-yellow-500"
+                      : "bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  }`}
+                  style={{ width: `${Math.min(c.percent, 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="mt-2 text-[10px] text-slate-600 leading-relaxed">
-          &quot;Max Patients Allowed&quot; shows how many concurrent patients each constraint could support on its own.
-          The actual capacity is the lowest value. &quot;Limiting&quot; = this constraint is the bottleneck.
+        <div className="mt-3 text-[10px] text-slate-600 leading-relaxed">
+          Each bar shows how much of each resource is consumed at the optimal solution.
+          &quot;Binding&quot; = this constraint is at capacity and limiting further growth.
         </div>
       </Card>
 

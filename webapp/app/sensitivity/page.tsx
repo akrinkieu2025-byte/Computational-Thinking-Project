@@ -16,7 +16,7 @@ const defaultInput: SolverInput = {
   Cn: 60000,
   Ce: 3000,
   Cb: 2000,
-  dp: 0.3,
+  pd: 3,
   ep: 0.5,
   bp: 1.15,
   np: 4,
@@ -24,6 +24,8 @@ const defaultInput: SolverInput = {
   Ab: 10,
   AT: 2000,
   avgLOS: 5,
+  dMin: 2,
+  nMin: 4,
 };
 
 export default function SensitivityPage() {

@@ -134,7 +134,7 @@ function ShadowPricesTable({ data }: { data: SensitivityResult }) {
   return (
     <Card delay={0.3}>
       <h3 className="text-sm font-semibold text-slate-300 mb-1">
-        Shadow Prices (Approximate Dual Values)
+        Approximate Marginal Values (Finite-Difference Estimates)
       </h3>
       <p className="text-[10px] text-slate-500 mb-3">
         Marginal value of relaxing each constraint by a small ε. Higher values = most valuable to relax.
@@ -346,7 +346,7 @@ export default function SensitivityDisplay({ data, input }: Props) {
       {/* Contextual explanation */}
       <div className="card p-4 border-l-2 border-l-blue-500/40">
         <p className="text-xs leading-relaxed text-slate-400">
-          These results show how your optimal solution changes if one parameter shifts — helping you identify which constraints are truly limiting you. A high shadow price means relaxing that constraint yields the greatest return.
+          These results show how your optimal solution changes if one parameter shifts — helping you identify which constraints are truly limiting you. A high marginal value means relaxing that constraint yields the greatest return.
         </p>
       </div>
 

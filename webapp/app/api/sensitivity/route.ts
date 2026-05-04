@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const body: SolverInput = await req.json();
 
     const fields: (keyof SolverInput)[] = [
-      "B", "Cd", "Cn", "Ce", "Cb", "dp", "ep", "bp", "np", "Ae", "Ab", "AT", "avgLOS",
+      "B", "Cd", "Cn", "Ce", "Cb", "pd", "ep", "bp", "np", "Ae", "Ab", "AT", "avgLOS", "dMin", "nMin",
     ];
     for (const f of fields) {
       if (typeof body[f] !== "number" || body[f] < 0) {

@@ -12,7 +12,7 @@ export function generateExcel(input: SolverInput, result: SolverResult): XLSX.Wo
     ["Annual Cost per Nurse", "Cn", input.Cn],
     ["Annual Cost per Monitor (deprec.+maint.)", "Ce", input.Ce],
     ["Annual Cost per Bed (deprec.+maint.)", "Cb", input.Cb],
-    ["Doctors per Patient", "dp", input.dp],
+    ["Patients per Doctor (on shift)", "pd", input.pd],
     ["Monitors per Patient", "ep", input.ep],
     ["Beds per Patient (incl. buffer)", "bp", input.bp],
     ["Patients per Nurse (on shift)", "np", input.np],
@@ -20,6 +20,8 @@ export function generateExcel(input: SolverInput, result: SolverResult): XLSX.Wo
     ["Space per Bed", "Ab", input.Ab],
     ["Total Space", "AT", input.AT],
     ["Avg. Length of Stay (days)", "avgLOS", input.avgLOS],
+    ["Min. Doctors", "dMin", input.dMin],
+    ["Min. Nurses", "nMin", input.nMin],
   ];
   const wsInput = XLSX.utils.aoa_to_sheet(inputRows);
   wsInput["!cols"] = [{ wch: 25 }, { wch: 10 }, { wch: 15 }];
@@ -57,11 +59,11 @@ export function generateExcel(input: SolverInput, result: SolverResult): XLSX.Wo
 
   // Constraints sheet
   const constraintRows = [
-    ["Constraint", "Capacity", "Slack", "Binding?"],
-    ...result.constraints.map((c) => [c.name, c.capacity, c.slack, c.binding ? "YES" : "No"]),
+    ["Constraint", "Usage", "Limit", "Utilization %", "Binding?"],
+    ...result.constraints.map((c) => [c.name, c.usageLabel, c.limitLabel, c.percent, c.binding ? "YES" : "No"]),
   ];
   const wsConstraints = XLSX.utils.aoa_to_sheet(constraintRows);
-  wsConstraints["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 10 }];
+  wsConstraints["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 12 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, wsConstraints, "Constraints");
 
   return wb;

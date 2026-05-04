@@ -3,7 +3,7 @@ import { solve, SolverInput, SolverResult } from "./solver";
 /* ── Types ─────────────────────────────────────────────── */
 
 export interface ParameterSweepPoint {
-  pctChange: number;   // e.g. -50, -20, -10, 0, 10, 20, 50
+  pctChange: number;
   paramValue: number;
   patients: number;
   bottleneck: string;
@@ -24,14 +24,14 @@ export interface TornadoBar {
   lowPatients: number;
   highPatients: number;
   baselinePatients: number;
-  range: number; // highPatients - lowPatients
+  range: number;
 }
 
 export interface ShadowPrice {
   constraint: string;
   binding: boolean;
   epsilon: number;
-  marginalValue: number; // ΔP / Δ(RHS)
+  marginalValue: number;
   interpretation: string;
 }
 
@@ -77,7 +77,7 @@ const PARAM_LABELS: Record<keyof SolverInput, string> = {
   Cn: "Cost / Nurse (Cn)",
   Ce: "Cost / Monitor (Ce)",
   Cb: "Cost / Bed (Cb)",
-  dp: "Doctors / Patient (dp)",
+  pd: "Patients / Doctor on shift (pd)",
   ep: "Monitors / Patient (ep)",
   bp: "Beds / Patient (bp)",
   np: "Patients / Nurse on shift (np)",
@@ -85,6 +85,8 @@ const PARAM_LABELS: Record<keyof SolverInput, string> = {
   Ab: "Space / Bed (Ab)",
   AT: "Total Space (AT)",
   avgLOS: "Avg. Length of Stay",
+  dMin: "Min. Doctors (dMin)",
+  nMin: "Min. Nurses (nMin)",
 };
 
 const SWEEP_PCTS = [-50, -40, -30, -20, -10, -5, 0, 5, 10, 20, 30, 40, 50];
@@ -97,7 +99,7 @@ async function solveQuiet(input: SolverInput): Promise<SolverResult> {
 
 export async function runSensitivity(input: SolverInput): Promise<SensitivityResult> {
   const baseline = await solveQuiet(input);
-  const paramKeys = Object.keys(PARAM_LABELS) as (keyof SolverInput)[];
+  const paramKeys = Object.keys(PARAM_LABELS).filter(k => k !== "avgLOS") as (keyof SolverInput)[];
 
   // 1 — Parameter sweeps
   const sweeps: ParameterSweep[] = [];
@@ -107,7 +109,6 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
     const points: ParameterSweepPoint[] = [];
     for (const pct of SWEEP_PCTS) {
       const modified = { ...input, [key]: base * (1 + pct / 100) };
-      // Ensure no negative values
       if (modified[key] < 0) continue;
       const res = await solveQuiet(modified);
       points.push({
@@ -147,11 +148,11 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
   }
   tornado.sort((a, b) => b.range - a.range);
 
-  // 3 — Shadow prices (approximate duals)
-  const EPS_FRAC = 0.01; // 1% bump
+  // 3 — Approximate marginal values (finite-difference approximation of duals)
+  const EPS_FRAC = 0.01;
   const shadowPrices: ShadowPrice[] = [];
 
-  // Budget shadow price
+  // Budget
   {
     const eps = input.B * EPS_FRAC;
     const bumped = { ...input, B: input.B + eps };
@@ -159,16 +160,16 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
     const mv = (res.P - baseline.P) / eps;
     shadowPrices.push({
       constraint: "Budget",
-      binding: baseline.constraints.find(c => c.name === "Budget")?.binding ?? false,
+      binding: baseline.constraints.find(c => c.name === "Annual Budget")?.binding ?? false,
       epsilon: eps,
       marginalValue: Math.round(mv * 10000) / 10000,
       interpretation: mv > 0.0001
-        ? `+$1 budget → +${(mv).toFixed(4)} patients`
-        : "Not a binding constraint",
+        ? `+€1 budget → +${(mv).toFixed(4)} patients`
+        : "Not currently limiting",
     });
   }
 
-  // Space shadow price
+  // Space
   {
     const eps = input.AT * EPS_FRAC;
     const bumped = { ...input, AT: input.AT + eps };
@@ -176,46 +177,46 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
     const mv = (res.P - baseline.P) / eps;
     shadowPrices.push({
       constraint: "Space",
-      binding: baseline.constraints.find(c => c.name === "Space")?.binding ?? false,
+      binding: baseline.constraints.find(c => c.name === "Floor Space")?.binding ?? false,
       epsilon: eps,
       marginalValue: Math.round(mv * 10000) / 10000,
       interpretation: mv > 0.0001
         ? `+1 m² space → +${(mv).toFixed(4)} patients`
-        : "Not a binding constraint",
+        : "Not currently limiting",
     });
   }
 
-  // Doctor capacity shadow price (via dp reduction)
+  // Doctor capacity (increase pd = each doctor handles more patients = more capacity)
   {
-    const eps = input.dp * EPS_FRAC;
-    const bumped = { ...input, dp: input.dp - eps }; // less dp = more capacity
+    const eps = input.pd * EPS_FRAC;
+    const bumped = { ...input, pd: input.pd + eps };
     const res = await solveQuiet(bumped);
     const mv = (res.P - baseline.P) / eps;
     shadowPrices.push({
-      constraint: "Doctor Capacity",
-      binding: baseline.constraints.find(c => c.name === "Doctor Capacity")?.binding ?? false,
+      constraint: "Doctor Staffing",
+      binding: baseline.constraints.find(c => c.name === "Doctor Staffing (3-shift)")?.binding ?? false,
       epsilon: eps,
       marginalValue: Math.round(mv * 10000) / 10000,
       interpretation: mv > 0.0001
-        ? `−0.01 dp → +${(mv * 0.01).toFixed(4)} patients`
-        : "Not a binding constraint",
+        ? `+1 patient/doctor → +${(mv * 1).toFixed(2)} patients`
+        : "Not currently limiting",
     });
   }
 
-  // Nurse staffing shadow price (increasing np = fewer nurses needed = more patients)
+  // Nurse staffing (increase np = each nurse handles more patients)
   {
     const eps = input.np * EPS_FRAC;
     const bumped = { ...input, np: input.np + eps };
     const res = await solveQuiet(bumped);
     const mv = (res.P - baseline.P) / eps;
     shadowPrices.push({
-      constraint: "Nurse Staffing (3-shift coverage)",
-      binding: baseline.constraints.find(c => c.name === "Nurse Staffing (3-shift coverage)")?.binding ?? false,
+      constraint: "Nurse Staffing",
+      binding: baseline.constraints.find(c => c.name === "Nurse Staffing (3-shift)")?.binding ?? false,
       epsilon: eps,
       marginalValue: Math.round(mv * 10000) / 10000,
       interpretation: mv > 0.0001
-        ? `+0.1 np → +${(mv * 0.1).toFixed(4)} patients`
-        : "Not a binding constraint",
+        ? `+1 patient/nurse → +${(mv * 1).toFixed(2)} patients`
+        : "Not currently limiting",
     });
   }
 
@@ -238,7 +239,7 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
   const heatmap: HeatmapData = {
     xParam: "B",
     yParam: "AT",
-    xLabel: "Budget ($)",
+    xLabel: "Budget (€)",
     yLabel: "Space (m²)",
     xValues,
     yValues,
@@ -246,13 +247,12 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
     baselinePatients: baseline.P,
   };
 
-  // 5 — Breakpoints (find where bottleneck shifts)
+  // 5 — Breakpoints
   const breakpoints: BreakpointEntry[] = [];
   for (const key of paramKeys) {
     const base = input[key];
     if (base === 0) continue;
     let prevBottleneck = baseline.bottleneck;
-    // Sweep upward in fine steps
     for (let pct = 2; pct <= 100; pct += 2) {
       const mod = { ...input, [key]: base * (1 + pct / 100) };
       const res = await solveQuiet(mod);
@@ -267,7 +267,6 @@ export async function runSensitivity(input: SolverInput): Promise<SensitivityRes
         prevBottleneck = res.bottleneck;
       }
     }
-    // Sweep downward
     prevBottleneck = baseline.bottleneck;
     for (let pct = -2; pct >= -48; pct -= 2) {
       const mod = { ...input, [key]: base * (1 + pct / 100) };
