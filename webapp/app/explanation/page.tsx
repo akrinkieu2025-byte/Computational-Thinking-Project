@@ -20,7 +20,7 @@ const sections = [
   },
   {
     title: "How the Solver Works",
-    content: `The tool uses Linear Programming (LP), a mathematical technique for finding the best outcome in a model with linear relationships. The GLPK (GNU Linear Programming Kit) solver explores the feasible region defined by all constraints and finds the vertex (corner point) that maximizes the objective function, in our case, the number of patients. LP is guaranteed to find the global optimum if one exists, making it ideal for resource allocation problems.`,
+    content: `The tool uses Linear Programming (LP) to solve a continuous relaxation of the problem, then searches downward from the LP optimum to find the best feasible integer solution. This guarantees the true integer-optimal result for our model structure. The LP solver explores the feasible region defined by all constraints and finds the point that maximizes patient capacity. Since all decision variables must be whole numbers (you can't hire half a doctor), the tool then computes exact integer resource requirements for each candidate patient count until it finds one that satisfies both the budget and space limits.`,
   },
   {
     title: "Understanding the Output",
@@ -47,7 +47,7 @@ Together, these tools help decision-makers prioritize investments, assess risk, 
   },
   {
     title: "Limitations",
-    content: `This model assumes: (1) All relationships are linear; in reality, efficiency may change with scale. (2) The LP solver produces continuous values, but the tool automatically rounds resources up and patients down to give practical whole-number results. (3) Patient demand is unlimited: the model assumes you can always fill capacity. (4) Quality is captured only by the minimum nurse-to-patient ratio K; real quality depends on many factors. (5) No time dimension: the model is static, not accounting for shifts or seasonal variation. (6) Single objective: real hospitals balance many goals beyond patient count.`,
+    content: `This model assumes: (1) All relationships are linear; in reality, efficiency may change with scale. (2) The solver finds exact integer solutions — all resources are whole numbers. (3) Patient demand is unlimited: the model assumes you can always fill capacity. (4) Staffing uses a fixed 3-shift (8h each) model for 24/7 coverage; real schedules may differ. (5) No time dimension: the model is static, not accounting for seasonal variation. (6) Single objective: real hospitals balance many goals beyond patient count (quality, wait times, staff wellbeing).`,
   },
 ];
 
@@ -99,29 +99,135 @@ export default function ExplanationPage() {
 }
 
 function MathBlock() {
-  const equations = [
-    { label: "Objective", eq: "Maximize  P  (number of patients)" },
-    { label: "Doctor capacity", eq: "P \u2264 d / d_p" },
-    { label: "Monitor capacity", eq: "P \u2264 e / e_p" },
-    { label: "Bed capacity", eq: "P \u2264 b / b_p  (b_p > 1 for turnover buffer)" },
-    { label: "Budget", eq: "C_d \u00b7 d + C_n \u00b7 n + C_e \u00b7 e + C_b \u00b7 b \u2264 B" },
-    { label: "Min. nurse ratio", eq: "n \u2265 K \u00b7 P  (K \u2265 n_p, regulatory floor)" },
-    { label: "Space", eq: "A_e \u00b7 e + A_b \u00b7 b \u2264 A_T" },
-    { label: "Non-negativity", eq: "d, n, e, b, P \u2265 0" },
-  ];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-      {equations.map((eq, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg border-l-2 border-l-blue-500/30 bg-white/[0.02] px-4 py-2.5">
-          <span className="text-[11px] font-medium text-slate-500 w-28 shrink-0">{eq.label}</span>
-          <code className="text-sm text-blue-300 font-mono">{eq.eq}</code>
+    <div className="space-y-6">
+      {/* Objective */}
+      <div className="space-y-2">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-4">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Objective</div>
+          <div className="text-lg text-blue-300 font-mono tracking-wide">
+            Maximize P
+          </div>
         </div>
-      ))}
-      <div className="md:col-span-2 mt-2">
-        <p className="text-xs text-slate-600">
-          Where: P = patients, d = doctors, n = nurses (governed by K), e = monitoring stations, b = beds
-        </p>
+        <p className="text-xs text-slate-500 pl-2">P = maximum number of patients the ward can treat simultaneously</p>
+      </div>
+
+      {/* Constraints */}
+      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject to:</div>
+
+      {/* Doctor constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            (3 / pd) × P &nbsp;≤&nbsp; d
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">pd</span> = patients one doctor can handle per shift (e.g. 3)</p>
+          <p><span className="text-slate-400 font-medium">3</span> = number of 8-hour shifts for 24/7 coverage</p>
+          <p><span className="text-slate-400 font-medium">d</span> = total doctor FTEs hired</p>
+        </div>
+      </div>
+
+      {/* Nurse constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            (3 / np) × P &nbsp;≤&nbsp; n
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">np</span> = patients one nurse can handle per shift (e.g. 4)</p>
+          <p><span className="text-slate-400 font-medium">n</span> = total nurse FTEs hired</p>
+        </div>
+      </div>
+
+      {/* Monitor constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            ep × P &nbsp;≤&nbsp; e
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">ep</span> = monitoring stations needed per patient (e.g. 0.5 = 1 per 2 patients)</p>
+          <p><span className="text-slate-400 font-medium">e</span> = total monitoring stations purchased</p>
+        </div>
+      </div>
+
+      {/* Bed constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            bp × P &nbsp;≤&nbsp; b
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">bp</span> = beds per patient (e.g. 1.15 for 15% turnover buffer)</p>
+          <p><span className="text-slate-400 font-medium">b</span> = total physical beds</p>
+        </div>
+      </div>
+
+      {/* Budget constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            Cd × d &nbsp;+&nbsp; Cn × n &nbsp;+&nbsp; Ce × e &nbsp;+&nbsp; Cb × b &nbsp;≤&nbsp; B
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">Cd</span> = annual cost per doctor FTE (salary + benefits)</p>
+          <p><span className="text-slate-400 font-medium">Cn</span> = annual cost per nurse FTE</p>
+          <p><span className="text-slate-400 font-medium">Ce</span> = annualized cost per monitor (purchase ÷ life + maintenance)</p>
+          <p><span className="text-slate-400 font-medium">Cb</span> = annualized cost per bed</p>
+          <p><span className="text-slate-400 font-medium">B</span> = total annual budget</p>
+        </div>
+      </div>
+
+      {/* Space constraint */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            Ae × e &nbsp;+&nbsp; Ab × b &nbsp;≤&nbsp; AT
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">Ae</span> = floor space per monitoring station (m²)</p>
+          <p><span className="text-slate-400 font-medium">Ab</span> = floor space per bed (m²)</p>
+          <p><span className="text-slate-400 font-medium">AT</span> = total available ward floor space (m²)</p>
+        </div>
+      </div>
+
+      {/* Min staffing */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            d &nbsp;≥&nbsp; dMin &nbsp;&nbsp;&nbsp;&nbsp; n &nbsp;≥&nbsp; nMin
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 pl-2 space-y-0.5">
+          <p><span className="text-slate-400 font-medium">dMin</span> = minimum doctors required (regulatory/safety floor)</p>
+          <p><span className="text-slate-400 font-medium">nMin</span> = minimum nurses required (regulatory/safety floor)</p>
+        </div>
+      </div>
+
+      {/* Integer & non-negativity */}
+      <div className="space-y-1.5">
+        <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-5 py-3">
+          <div className="text-base text-blue-300 font-mono">
+            P, d, n, e, b &nbsp;∈&nbsp; ℤ⁺ &nbsp;&nbsp;(positive integers)
+          </div>
+        </div>
+        <p className="text-xs text-slate-500 pl-2">All decision variables must be whole numbers — you cannot hire half a doctor or buy 0.3 beds.</p>
+      </div>
+
+      {/* Annual throughput note */}
+      <div className="mt-4 rounded-lg bg-blue-500/5 border border-blue-500/10 px-5 py-3">
+        <div className="text-xs font-semibold text-blue-400/80 mb-1">Annual Throughput Estimate</div>
+        <div className="text-sm text-blue-300 font-mono mb-2">
+          Annual patients ≈ P × 365 / avgLOS
+        </div>
+        <p className="text-xs text-slate-500"><span className="text-slate-400 font-medium">avgLOS</span> = average length of stay in days. This is a display metric, not a constraint in the optimization.</p>
       </div>
     </div>
   );
