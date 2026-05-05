@@ -55,39 +55,41 @@ export default function ExplanationPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
+          transition={{ duration: 0.3 }}
+          className="mb-6 flex items-center justify-between"
         >
-          <div className="flex items-center justify-center gap-4">
-            <h1 className="text-3xl font-bold text-white sm:text-4xl tracking-tight">
-              How It Works
+          <div>
+            <h1 className="text-xl font-semibold text-white tracking-tight">
+              Methodology
             </h1>
-            <div className="rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 p-1.5">
-              <Image
-                src="/ie-logo.jpg"
-                alt="IE University"
-                width={100}
-                height={34}
-                className="object-contain h-auto rounded-md brightness-[1.15] contrast-[0.9]"
-                priority
-              />
-            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              A complete guide to the optimization model behind IEcare
+            </p>
           </div>
-          <p className="mt-3 text-[#9ba4b8] text-sm max-w-lg mx-auto leading-relaxed text-center">
-            A complete guide to the optimization model behind OptiCare
-          </p>
-        </motion.div>
+          <div className="rounded-lg overflow-hidden bg-white/5 border border-white/[0.06] p-1">
+            <Image
+              src="/ie-logo.jpg"
+              alt="IE University"
+              width={80}
+              height={28}
+              className="object-contain rounded brightness-[1.1] contrast-[0.9]"
+              style={{ width: "auto", height: "auto" }}
+              priority
+            />
+          </div>
+        </motion.header>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {sections.map((s, i) => (
-            <Card key={i} delay={i * 0.06}>
+            <Card key={i} delay={i * 0.04}>
               <div id={(s as Record<string, unknown>).id as string | undefined} className="min-w-0 scroll-mt-24">
-                <h2 className="text-base font-semibold text-slate-200 mb-3">{s.title}</h2>
+                <h2 className="text-sm font-semibold text-slate-200 mb-2">{s.title}</h2>
                 {s.equations ? <MathBlock /> : (
-                  <p className="text-sm leading-relaxed text-slate-400 whitespace-pre-line">{s.content}</p>
+                  <p className="text-xs leading-relaxed text-slate-400 whitespace-pre-line">{s.content}</p>
                 )}
               </div>
             </Card>

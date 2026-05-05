@@ -57,41 +57,45 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          transition={{ duration: 0.3 }}
+          className="mb-6 flex items-center justify-between"
         >
-          <div className="flex items-center justify-center gap-4">
-            <h1 className="text-3xl font-bold text-white sm:text-4xl tracking-tight">
-              Hospital Resource Optimizer
+          <div>
+            <h1 className="text-xl font-semibold text-white tracking-tight">
+              Resource Allocation Optimizer
             </h1>
-            <div className="rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 p-1.5">
-              <Image
-                src="/ie-logo.jpg"
-                alt="IE University"
-                width={100}
-                height={34}
-                className="object-contain h-auto rounded-md brightness-[1.15] contrast-[0.9]"
-                priority
-              />
-            </div>
+            <p className="mt-0.5 text-xs text-slate-500 max-w-lg">
+              Maximize concurrent patient capacity within budget, staffing, and space constraints.
+            </p>
           </div>
-          <p className="mt-3 text-[#9ba4b8] text-sm max-w-xl mx-auto leading-relaxed text-center">
-            Find the optimal annual allocation of doctors, nurses, monitoring stations, and beds to maximize concurrent patient capacity within your budget and space constraints. All costs are annualized; staffing ratios include 24/7 shift coverage.
-          </p>
-        </motion.div>
+          <div className="rounded-lg overflow-hidden bg-white/5 border border-white/[0.06] p-1">
+            <Image
+              src="/ie-logo.jpg"
+              alt="IE University"
+              width={80}
+              height={28}
+              className="object-contain rounded brightness-[1.1] contrast-[0.9]"
+              style={{ width: "auto", height: "auto" }}
+              priority
+            />
+          </div>
+        </motion.header>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* Main layout: inputs left, results right (results larger) */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_1fr]">
           <InputForm values={input} onChange={setInput} onSolve={handleSolve} loading={loading} />
 
-          <div>
+          <div className="min-w-0">
             {error && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-[10px] border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300 mb-4"
+                className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-300 mb-4"
               >
                 {error}
               </motion.div>
@@ -102,20 +106,19 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="card h-full p-6 flex flex-col"
+                className="card h-full p-8 flex flex-col items-center justify-center"
               >
-                <div className="space-y-3 flex-1">
-                  <div className="grid grid-cols-3 gap-2.5">
+                <div className="w-full max-w-sm space-y-3 opacity-40">
+                  <div className="grid grid-cols-3 gap-2">
                     {[...Array(6)].map((_, i) => (
-                      <div key={i} className="rounded-xl bg-[#1a1f33] h-[72px]" />
+                      <div key={i} className="rounded-md bg-[#161b26] h-16" />
                     ))}
                   </div>
-                  <div className="rounded-xl bg-[#1a1f33] h-14" />
-                  <div className="rounded-xl bg-[#1a1f33] h-14" />
-                  <div className="rounded-xl bg-[#1a1f33] h-24" />
+                  <div className="rounded-md bg-[#161b26] h-10" />
+                  <div className="rounded-md bg-[#161b26] h-10" />
                 </div>
-                <p className="text-center text-xs text-[#5e6780] pt-4">
-                  Enter parameters and click Solve to see results
+                <p className="text-center text-[11px] text-slate-600 mt-6">
+                  Configure parameters and run the solver to see optimization results
                 </p>
               </motion.div>
             )}

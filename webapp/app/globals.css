@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --bg-base: #0c0f1a;
-  --bg-surface: #131726;
-  --bg-raised: #1a1f33;
-  --bg-hover: #212740;
-  --accent: #4f7df5;
-  --accent-muted: rgba(79, 125, 245, 0.15);
-  --border: rgba(255, 255, 255, 0.07);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --text-1: #edf0f7;
-  --text-2: #9ba4b8;
-  --text-3: #5e6780;
-  --radius: 12px;
+  --bg-base: #090b12;
+  --bg-surface: #0f1219;
+  --bg-raised: #161b26;
+  --bg-hover: #1c2233;
+  --accent: #3b82f6;
+  --accent-dim: #2563eb;
+  --accent-muted: rgba(59, 130, 246, 0.1);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.1);
+  --text-1: #f1f3f8;
+  --text-2: #8b95a9;
+  --text-3: #4b5563;
+  --radius: 10px;
+  --radius-sm: 6px;
 }
 
 html { height: 100%; }
@@ -22,11 +24,6 @@ body {
   color: var(--text-1);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   background: var(--bg-base);
-  /* very subtle radial wash so the centre isn't dead-flat */
-  background-image:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,125,245,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(124,107,222,0.04) 0%, transparent 50%);
-  background-attachment: fixed;
 }
 
 /* ── Cards ────────────────────────────────────────────── */
@@ -34,13 +31,12 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s;
 }
 .card:hover {
   border-color: var(--border-hover);
 }
 
-/* legacy compat — used in a couple of places */
 .glass {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -48,21 +44,21 @@ body {
 }
 
 /* ── Scrollbar ────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(79,125,245,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.15); border-radius: 2px; }
 
 /* ── Inputs ───────────────────────────────────────────── */
 input[type="number"],
 input[type="text"] {
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
   color: var(--text-1);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
   -moz-appearance: textfield;
   appearance: textfield;
@@ -76,16 +72,9 @@ input[type="number"]:focus,
 input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-muted);
+  box-shadow: 0 0 0 2px var(--accent-muted);
 }
 input::placeholder { color: var(--text-3); }
-
-/* ── Placeholder skeletons ────────────────────────────── */
-.placeholder-block {
-  background: var(--bg-raised);
-  border: 1px dashed rgba(255,255,255,0.06);
-  border-radius: var(--radius);
-}
 
 /* ── Focus rings ──────────────────────────────────────── */
 button:focus-visible, a:focus-visible {
@@ -95,7 +84,7 @@ button:focus-visible, a:focus-visible {
 
 /* ── Utility ──────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {

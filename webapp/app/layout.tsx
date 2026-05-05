@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OptiCare — Hospital Resource Optimizer",
+  title: "IEcare — Hospital Resource Optimizer",
   description: "Optimize hospital resource allocation using linear programming",
 };
 

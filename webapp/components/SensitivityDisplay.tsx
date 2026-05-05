@@ -56,9 +56,9 @@ function TornadoChart({ data }: { data: SensitivityResult }) {
           />
           <YAxis dataKey="name" type="category" tick={{ fill: "#94a3b8", fontSize: 10 }} width={160} />
           <Tooltip
-            contentStyle={{ background: "#1a1f33", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, fontSize: 11, color: "#edf0f7" }}
+            contentStyle={{ background: "#0f1219", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 10, color: "#f1f3f8" }}
           />
-          <ReferenceLine x={0} stroke="#5e6780" strokeDasharray="3 3" />
+          <ReferenceLine x={0} stroke="#4b5563" strokeDasharray="3 3" />
           <Bar dataKey="low" name="−20%" stackId="a" fill="#f87171" radius={[4, 0, 0, 4]} />
           <Bar dataKey="high" name="+20%" stackId="a" fill="#34d399" radius={[0, 4, 4, 0]} />
         </BarChart>
@@ -87,10 +87,10 @@ function SweepCharts({ data }: { data: SensitivityResult }) {
           <button
             key={s.paramKey}
             onClick={() => setSelected(s.paramKey)}
-            className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
               selected === s.paramKey
-                ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
-                : "bg-white/5 text-slate-500 border border-white/10 hover:text-slate-300"
+                ? "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                : "bg-white/[0.03] text-slate-500 border border-white/[0.06] hover:text-slate-300"
             }`}
           >
             {s.paramKey}
@@ -114,7 +114,7 @@ function SweepCharts({ data }: { data: SensitivityResult }) {
               />
               <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} />
               <Tooltip
-                contentStyle={{ background: "#1a1f33", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, fontSize: 11, color: "#edf0f7" }}
+                contentStyle={{ background: "#0f1219", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 10, color: "#f1f3f8" }}
                 formatter={(v: unknown) => [Number(v).toFixed(2), "Patients"]}
                 labelFormatter={(l: unknown) => `${Number(l) >= 0 ? "+" : ""}${l}% change`}
               />
@@ -155,7 +155,7 @@ function ShadowPricesTable({ data }: { data: SensitivityResult }) {
               <tr key={i} className="border-b border-white/5">
                 <td className="py-2 text-slate-300">{s.constraint}</td>
                 <td className="py-2 text-right">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s.binding ? "bg-red-500/20 text-red-300" : "bg-green-500/20 text-green-300"}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold ${s.binding ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-white/[0.03] text-slate-500 border border-white/[0.06]"}`}>
                     {s.binding ? "Yes" : "No"}
                   </span>
                 </td>
@@ -330,37 +330,37 @@ export default function SensitivityDisplay({ data, input }: Props) {
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-200 tracking-tight">
-          Sensitivity Analysis
+        <h2 className="text-sm font-semibold text-slate-300 tracking-tight">
+          Sensitivity Results
         </h2>
         <motion.button
-          whileHover={{ scale: 1.01 }}
+          whileHover={{ scale: 1.005 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => downloadSensitivityExcel(input, data)}
-          className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
+          className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px] font-medium text-slate-500 transition-colors hover:bg-white/[0.04] hover:text-slate-300"
         >
-          Download Excel
+          Export Excel
         </motion.button>
       </div>
 
       {/* Contextual explanation */}
-      <div className="card p-4 border-l-2 border-l-blue-500/40">
-        <p className="text-xs leading-relaxed text-slate-400">
+      <div className="card p-3 border-l-2 border-l-blue-500/30">
+        <p className="text-[11px] leading-relaxed text-slate-500">
           These results show how your optimal solution changes if one parameter shifts — helping you identify which constraints are truly limiting you. A high marginal value means relaxing that constraint yields the greatest return.
         </p>
       </div>
 
       {/* Baseline reminder */}
-      <div className="card p-4 flex items-center gap-3">
+      <div className="card p-3 flex items-center gap-3">
         <div>
-          <div className="text-xs text-slate-400">Baseline Optimal</div>
-          <div className="text-lg font-bold text-white">
+          <div className="text-[10px] text-slate-500">Baseline Optimal</div>
+          <div className="text-lg font-bold text-white tabular-nums">
             {data.baseline.P} patients
           </div>
         </div>
         <div className="ml-auto text-right">
-          <div className="text-xs text-slate-400">Bottleneck</div>
-          <div className="text-sm font-semibold text-purple-300">{data.baseline.bottleneck}</div>
+          <div className="text-[10px] text-slate-500">Bottleneck</div>
+          <div className="text-sm font-semibold text-amber-300">{data.baseline.bottleneck}</div>
         </div>
       </div>
 
@@ -372,10 +372,10 @@ export default function SensitivityDisplay({ data, input }: Props) {
 
       {/* Bottom export */}
       <motion.button
-        whileHover={{ scale: 1.02 }}
+        whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => downloadSensitivityExcel(input, data)}
-        className="w-full rounded-[10px] border border-white/[0.06] bg-white/[0.03] py-3 text-sm font-medium text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-slate-300"
+        className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] py-2.5 text-xs font-medium text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-300"
       >
         Download Full Sensitivity Report (Excel)
       </motion.button>
