@@ -206,14 +206,14 @@ export default function FlowchartPage() {
         <Num cx={NX} cy={Y.constraints} n="9" />
         <Box cx={CX} cy={Y.constraints} fill={PURPLE_LIGHT} stroke={PURPLE_BORDER}
           t1="Analyse Resource Utilisation"
-          t2="How much of each resource is used? What is the bottleneck?" tc={PURPLE} />
+          t2="Compute usage % and identify the bottleneck" tc={PURPLE} />
         <Arr x1={CX} y1={Y.constraints + BOX_H / 2} x2={CX} y2={Y.sensitivity - BOX_H / 2} />
 
         {/* 10 */}
         <Num cx={NX} cy={Y.sensitivity} n="10" />
         <Box cx={CX} cy={Y.sensitivity} fill={PURPLE_LIGHT} stroke={PURPLE_BORDER}
           t1="Run Sensitivity Analysis"
-          t2="What happens if inputs change? Which matter most?" tc={PURPLE} />
+          t2="Test how results change when inputs vary" tc={PURPLE} />
         <Arr x1={CX} y1={Y.sensitivity + BOX_H / 2} x2={CX} y2={Y.end - 20} />
 
         {/* END */}
