@@ -31,12 +31,20 @@ function TornadoChart({ data }: { data: SensitivityResult }) {
   const items = data.tornado.slice(0, 10).reverse(); // top 10, reversed for horizontal bars
   const base = data.baseline.P;
 
-  const chartData = items.map((t) => ({
-    name: t.paramLabel,
-    low: Math.round((t.lowPatients - base) * 100) / 100,
-    high: Math.round((t.highPatients - base) * 100) / 100,
-    range: t.range,
-  }));
+  const chartData = items.map((t) => {
+    const lowDelta = Math.round((t.lowPatients - base) * 100) / 100;
+    const highDelta = Math.round((t.highPatients - base) * 100) / 100;
+    // For the tornado, we want red = worse direction, green = better direction
+    // Show as a range bar: [min(lowDelta, highDelta), max(lowDelta, highDelta)]
+    const negSide = Math.min(lowDelta, highDelta);
+    const posSide = Math.max(lowDelta, highDelta);
+    return {
+      name: t.paramLabel,
+      negative: negSide,
+      positive: posSide,
+      range: t.range,
+    };
+  });
 
   return (
     <Card delay={0.1}>
@@ -59,8 +67,8 @@ function TornadoChart({ data }: { data: SensitivityResult }) {
             contentStyle={{ background: "#0f1219", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 10, color: "#f1f3f8" }}
           />
           <ReferenceLine x={0} stroke="#4b5563" strokeDasharray="3 3" />
-          <Bar dataKey="low" name="−20%" stackId="a" fill="#f87171" radius={[4, 0, 0, 4]} />
-          <Bar dataKey="high" name="+20%" stackId="a" fill="#34d399" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="negative" name="Decrease (−20%)" fill="#f87171" radius={[4, 0, 0, 4]} />
+          <Bar dataKey="positive" name="Increase (+20%)" fill="#34d399" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Card>
