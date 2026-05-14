@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Activity, BarChart3, BookOpen } from "lucide-react";
+import IECareLogo from "./IECareLogo";
 
 const links = [
   { href: "/", label: "Optimizer", icon: Activity },
@@ -21,14 +22,9 @@ export default function Navbar() {
       transition={{ duration: 0.3 }}
       className="sticky top-0 z-50 border-b border-white/[0.05] bg-[#090b12]/95 backdrop-blur-md"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 h-12">
-        <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-white/90">
-          <div className="flex items-center justify-center w-6 h-6 rounded bg-blue-500/15 border border-blue-500/20">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-blue-400">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </div>
-          IEcare
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 h-14">
+        <Link href="/" className="flex items-center">
+          <IECareLogo size="sm" />
         </Link>
 
         <div className="flex gap-1">
